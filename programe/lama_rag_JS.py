@@ -14,7 +14,7 @@ CORS(app)
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-llm = ChatOpenAI(model='gpt-4o-mini')
+llm = ChatOpenAI(model='gpt-4o')
 
 # Dictionary to store memory for each conversation
 conversation_memory = {}
@@ -76,16 +76,25 @@ def ask_question():
     
     if retrieved_docs:
         context = "\n".join([doc.text for doc in retrieved_docs])  
-        response = llm.invoke(f"根據以下內容回答問題，若有需要可以參考先前對話記憶：\n\n{context}\n\n問題：{input_text}；\n\n記憶：{memory}")
+        response = llm.invoke(f"""以下內容為搜索到的東西：\n\n{context}\n\n使用者問題：{input_text}，請根據使用者的問題去搜索到的內容找答案，
+                              若根據搜索到的內容可以找出答案，請直接回答問題
+                              若你認為使用者問題不明確，請輸出一點提示，幫助使用者收斂問題；
+                              **使用者問題不明確的定義舉例:假如內容中提到電控箱檢修有分成電源開啟時以及關閉時，若使用者只提問電控箱的檢修流程，
+                              即為問題不清楚，要想辦法引導使用者說出他要哪種電控箱檢查流程。若有需要，你可以參考之前對話記憶：\n\n{memory}
+                              """)
+        #response = llm.invoke(f"根據以下內容回答問題，若有需要可以參考先前對話記憶：\n\n{context}\n\n問題：{input_text}；\n\n記憶：{memory}")
         
         memory.append(f"問題：{input_text}\n回答：{response.content}\n")
         
         # Limit memory size for each conversation to manage memory usage
         memory_len = sum(len(m) for m in memory)
         if memory_len > 1000:
-            memory = [summarize_memory(" ".join(memory))]
-            conversation_memory[conversation_id] = memory  # Update after summarizing
-        
+            recent_memory = memory[-5:] 
+            summary = summarize_memory(" ".join(memory[:-5]))
+            if summary:
+                memory = [summary] + recent_memory
+                conversation_memory[conversation_id] = memory
+        print("memory: ", memory)
         print(response.content)
     else:
         clarifying_question = generate_clarifying_question(input_text)

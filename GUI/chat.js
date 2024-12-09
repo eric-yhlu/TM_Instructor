@@ -80,7 +80,7 @@ function sendMessage() {
         chatContent.scrollTop = chatContent.scrollHeight;
 
         // 發送請求到 Flask 後端，並包含 conversationId
-        fetch('http://127.0.0.1:5000/api/get-response', {
+        fetch('http://10.1.10.30:5000/api/get-response', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
